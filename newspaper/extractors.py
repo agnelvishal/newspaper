@@ -148,8 +148,10 @@ class ContentExtractor(object):
 
         for match in matches:
             content = ''
-            if match.tag == 'meta':
+            if match.tag == 'meta' or match.tag == 'span' or match.tag == 'a':
                 mm = match.xpath('@content')
+                if not mm:
+                 mm=str(match.text_content()).split()
                 if len(mm) > 0:
                     content = mm[0]
             else:
@@ -216,6 +218,12 @@ class ContentExtractor(object):
              'content': 'content'},
             {'attribute': 'pubdate', 'value': 'pubdate',
              'content': 'datetime'},
+            {'attribute': 'name', 'value': 'publish-date',
+             'content': 'content'},
+            {'attribute': 'name', 'value': 'created-date',
+             'content': 'content'},
+            {'attribute': 'name', 'value': 'modified-date',
+             'content': 'content'},
         ]
         for known_meta_tag in PUBLISH_DATE_TAGS:
             meta_tags = self.parser.getElementsByTag(
