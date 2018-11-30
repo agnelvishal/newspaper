@@ -17,6 +17,9 @@ import re
 import re
 from collections import defaultdict
 
+from bs4 import BeautifulSoup
+import json
+
 from dateutil.parser import parse as date_parser
 from tldextract import tldextract
 from urllib.parse import urljoin, urlparse, urlunparse
@@ -35,8 +38,8 @@ DASH_SPLITTER = StringSplitter(" - ")
 UNDERSCORE_SPLITTER = StringSplitter("_")
 SLASH_SPLITTER = StringSplitter("/")
 ARROWS_SPLITTER = StringSplitter(" » ")
-COLON_SPLITTER = StringSplitter(":")
 SPACE_SPLITTER = StringSplitter(' ')
+COLON_SPLITTER = StringSplitter(":")
 NO_STRINGS = set()
 A_REL_TAG_SELECTOR = "a[rel=tag]"
 A_HREF_TAG_SELECTOR = ("a[href*='/tag/'], a[href*='/tags/'], "
@@ -69,7 +72,7 @@ class ContentExtractor(object):
             self.stopwords_class = \
                 self.config.get_stopwords_class(meta_lang)
 
-    def get_authors(self, doc):
+    def get_authors(self,html, doc):
         """Fetch the authors of the article, return as a list
         Only works for english articles
         """
@@ -132,13 +135,28 @@ class ContentExtractor(object):
                 _authors.append(' '.join(curname))
 
             return _authors
+        # To do: Attempt parsing application/ld+json
+        # av = self.parser.getElementsByTag(doc,tag='script',attr='type', value='application/ld+json')
+        # print(av)
+        # print(self.parser.getText(av))
+        authors = []
+        parsedHTML = BeautifulSoup(html,"lxml")
+        scripts = parsedHTML.find_all('script', type='application/ld+json')
+        for script in scripts:
+            try:
+                data = json.loads(script.text)
+                jsonAuthor = data['author']['name'].split(',','and')
+                if (len(jsonAuthor) > 0 and len(jsonAuthor) < 30):
+                    authors.extend(jsonAuthor)
+                    #return uniqify_list(authors.extend(data['author']['name']))
+            except:
+                pass
 
         # Try 1: Search popular author tags for authors
-
         ATTRS = ['name', 'rel', 'itemprop', 'class', 'id']
-        VALS = ['author', 'byline', 'dc.creator', 'byl']
+        VALS = ['author','author-name', 'byline', 'dc.creator', 'byl']
         matches = []
-        authors = []
+
 
         for attr in ATTRS:
             for val in VALS:
@@ -151,12 +169,12 @@ class ContentExtractor(object):
             if match.tag == 'meta' or match.tag == 'span' or match.tag == 'a':
                 mm = match.xpath('@content')
                 if not mm:
-                 mm=str(match.text_content()).split()
+                 mm = str(match.text_content()).split(',')
                 if len(mm) > 0:
                     content = mm[0]
             else:
                 content = match.text or ''
-            if len(content) > 0:
+            if len(content) > 0 and len(content) < 30:
                 authors.extend(parse_byline(content))
 
         return uniqify_list(authors)

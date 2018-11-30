@@ -20,11 +20,11 @@ ideal = 20.0
 stopwords = set()
 
 def load_stopwords(language):
-    """ 
+    """
     Loads language-specific stopwords for keyword selection
     """
     global stopwords
-    
+
     # stopwords for nlp in English are not the regular stopwords
     # to pass the tests
     # can be changed with the tests
@@ -35,8 +35,8 @@ def load_stopwords(language):
                                   'stopwords-{}.txt'.format(language))
     with open(stopwordsFile, 'r', encoding='utf-8') as f:
         stopwords.update(set([w.strip() for w in f.readlines()]))
-        
-        
+
+
 def summarize(url='', title='', text='', max_sents=5):
     if not text or not title or max_sents <= 0:
         return []
@@ -149,6 +149,32 @@ def keywords(text):
     else:
         return dict()
 
+def entropy(text):
+    """Used to calculate the entropy of words in a text.
+    """
+    text = split_words(text)
+    numStop = 0
+    textNo=[]
+    # of words before removing blacklist words
+    if text:
+        num_words = len(text)
+        for x in text:
+          if x not in stopwords:
+            textNo.append(x)
+          else:
+              numStop+=1
+        freq = {}
+        unique = 0
+        notUnique = 0
+        for word in textNo:
+            if word in freq:
+                freq[word] += 1
+                notUnique += 1
+            else:
+                freq[word] = 1
+                unique +=1
+    entropyN = int((unique / (num_words - numStop))*100)
+    return [entropyN,numStop,num_words]
 
 def split_sentences(text):
     """Split a large string into sentences

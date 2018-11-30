@@ -153,6 +153,14 @@ class Article(object):
         # A property dict for users to store custom data.
         self.additional_data = {}
 
+        #Total area occupied by image_src
+        self.area = 0
+
+        # Entropy of words of a text and number of stop words.
+        self.entropyN = 0
+        self.stopWords = 0
+        self.totalWords = 0
+
     def build(self):
         """Build a lone article from a URL independent of the source (newspaper).
         Don't normally call this method b/c it's good to multithread articles
@@ -229,7 +237,7 @@ class Article(object):
         title = self.extractor.get_title(self.clean_doc)
         self.set_title(title)
 
-        authors = self.extractor.get_authors(self.clean_doc)
+        authors = self.extractor.get_authors(self.html,self.clean_doc)
         self.set_authors(authors)
 
         meta_lang = self.extractor.get_meta_lang(self.clean_doc)
@@ -386,6 +394,22 @@ class Article(object):
         summary_sents = nlp.summarize(title=self.title, text=self.text, max_sents=max_sents)
         summary = '\n'.join(summary_sents)
         self.set_summary(summary)
+        res = nlp.entropy(self.text)
+        self.entropyN = res[0]
+        self.stopWords = res[1]
+
+    def nlpEntropy(self):
+        """Keyword extraction wrapper
+        """
+        self.throw_if_not_downloaded_verbose()
+        self.throw_if_not_parsed_verbose()
+
+        nlp.load_stopwords(self.config.get_language())
+
+        res = nlp.entropy(self.text)
+        self.entropyN = res[0]
+        self.stopWords = res[1]
+        self.totalWords = res[2]
 
     def get_parse_candidate(self):
         """A parse candidate is a wrapper object holding a link hash of this
@@ -490,6 +514,13 @@ class Article(object):
         """
         self.images = imgs
         self.imgs = imgs
+
+    def total_img_area(self,imgs):
+        s = images.Scraper(self)
+        area=0
+        for x in imgs:
+            area +=s.calculate_areaNoDimension(x)
+        self.area = area
 
     def set_keywords(self, keywords):
         """Keys are stored in list format

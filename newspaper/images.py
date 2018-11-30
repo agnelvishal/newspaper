@@ -218,6 +218,31 @@ class Scraper:
             log.debug('penalizing sprite %s' % img_url)
             area /= 10
         return area
+    def calculate_areaNoDimension(self, img_url):
+        dimension = fetch_image_dimension(img_url, self.useragent, referer=self.url)
+        if not dimension:
+            return 0
+        area = dimension[0] * dimension[1]
+        # Ignore tiny images
+        if area < minimal_area:
+            log.debug('ignore little %s' % img_url)
+            return 0
+        # PIL won't scale up, so set a min width and
+        # maintain the aspect ratio
+        if dimension[0] < thumbnail_size[0]:
+            return 0
+        # Ignore excessively long/wide images
+        #current_ratio = max(dimension) / min(dimension)
+        # if current_ratio > self.config.image_dimension_ration:
+        #     log.debug('ignore dims %s' % img_url)
+        #     return 0
+        # Penalize images with "sprite" in their name
+        lower_case_url = img_url.lower()
+        if 'sprite' in lower_case_url or 'logo' in lower_case_url or 'android' in lower_case_url or 'ios' in lower_case_url:
+            log.debug('penalizing sprite %s' % img_url)
+            area /= 10
+        return area
+
 
     def satisfies_requirements(self, img_url):
         dimension = fetch_image_dimension(
